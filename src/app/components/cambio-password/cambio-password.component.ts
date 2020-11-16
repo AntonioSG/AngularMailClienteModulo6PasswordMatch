@@ -18,23 +18,25 @@ export class CambioPasswordComponent implements OnInit {
   form: FormGroup;
   hideActual = true;  // Utilizado para mostrar u ocultar la contraseña actual
   hideNueva = true;  // Utilizado para mostrar u ocultar la nueva contraseña
+  hideRepite = true;
 
   /**
    * Constructor, con objetos instanciados por el inyector
    */
   constructor(
-      private router: Router,
-      private usuariosService: UsuarioService, 
-      private comunicacionAlertas: ComunicacionDeAlertasService) {
+    private router: Router,
+    private usuariosService: UsuarioService,
+    private comunicacionAlertas: ComunicacionDeAlertasService) {
   }
-  
+
   /**
    * Inicializo el formulario reactivo
    */
   ngOnInit() {
     this.form = new FormGroup({
-      actual: new FormControl ('', [Validators.required]),
-      nueva: new FormControl ('', [Validators.required]),
+      actual: new FormControl('', [Validators.required]),
+      nueva: new FormControl('', [Validators.required]),
+      repite: new FormControl('', [Validators.required]),
     });
 
   }
@@ -43,7 +45,7 @@ export class CambioPasswordComponent implements OnInit {
    * Actualizo el password por uno nuevo
    */
   actualizarPassword() {
-     // Compruebo si la contraseña escrita es real para el usuario autenticado
+    // Compruebo si la contraseña escrita es real para el usuario autenticado
     this.comunicacionAlertas.abrirDialogCargando();
     var actualEncriptada = this.encriptaMD5(this.form.controls.actual.value); // Encripto la contraseña con MD5
     // Hago la petición al servicio de usuario, para ratificar la contraseña
@@ -55,18 +57,23 @@ export class CambioPasswordComponent implements OnInit {
       else { // Se ha ratificado la contraseña actual, se lanza el cambio de contraseña
 
         // Lanzo la llamada al cambio de contraseña
-        var nuevaEncriptada = this.encriptaMD5(this.form.controls.nueva.value); // Encripto la nueva contraseña
-        // Envio al servicio la petición de cambio de contraseña
-        this.usuariosService.cambiaPasswordUsuarioAutenticado(nuevaEncriptada).subscribe(resultado => {
-          if (resultado["result"] == 'fail') { // Se obtiene fallo
-            this.comunicacionAlertas.abrirDialogError('Error al actualizar la contraseña. Inténtelo más tarde.')
-          }
-          else { // todo ok.
-            this.comunicacionAlertas.abrirDialogInfo('Contraseña actualizada').subscribe(result => {
-              this.router.navigate(['/listadoMensajes']); // Vuelvo al listado de mensajes
-            });
-          }
-        })
+        if (this.form.controls.nueva.value == this.form.controls.repite.value) {
+          var nuevaEncriptada = this.encriptaMD5(this.form.controls.nueva.value); // Encripto la nueva contraseña
+          // Envio al servicio la petición de cambio de contraseña
+          this.usuariosService.cambiaPasswordUsuarioAutenticado(nuevaEncriptada).subscribe(resultado => {
+            if (resultado["result"] == 'fail') { // Se obtiene fallo
+              this.comunicacionAlertas.abrirDialogError('Error al actualizar la contraseña. Inténtelo más tarde.')
+            }
+            else { // todo ok.
+              this.comunicacionAlertas.abrirDialogInfo('Contraseña actualizada').subscribe(result => {
+                this.router.navigate(['/listadoMensajes']); // Vuelvo al listado de mensajes
+              });
+            }
+          })
+        }
+        else {
+          this.comunicacionAlertas.abrirDialogError('Las contraseñas no coinciden')
+        }
       }
     });
   }
@@ -74,7 +81,7 @@ export class CambioPasswordComponent implements OnInit {
   /**
    * Encripta un texto en MD5
    */
-  encriptaMD5 (texto: string) : string {
+  encriptaMD5(texto: string): string {
     const md5 = new Md5();
     return md5.appendStr(texto).end().toString();
   }
@@ -82,7 +89,7 @@ export class CambioPasswordComponent implements OnInit {
   /**
    * Cancela el cambio de contraseña, vuelve al listado de mensajes
    */
-  cancelar () {
+  cancelar() {
     this.router.navigate(['/listadoMensajes']);
   }
 }
